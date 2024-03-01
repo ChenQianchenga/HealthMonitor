@@ -1,2 +1,2 @@
-FLASK_APP=monitor-system
+FLASK_APP=HealthMonitor
 FLASK_ENV=development

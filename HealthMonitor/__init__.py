@@ -9,15 +9,16 @@
 import os
 import click
 from flask import Flask
-from blueprints.monitor import monitor_bp
-from extensions import db, mail, moment
-from settings import config
+from HealthMonitor.blueprints import monitor
+from HealthMonitor.blueprints.monitor import monitor_bp
+from HealthMonitor.extensions import db, mail, moment
+from HealthMonitor.settings import config
 
 
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.getenv('FLASK_CONFIG', 'development')
-    app = Flask('monitor-system')
+    app = Flask('HealthMonitor')
     # 引入配置
     app.config.from_object(config[config_name])
     # 注册日志处理器

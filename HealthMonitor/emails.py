@@ -7,12 +7,10 @@
 # Date:2023/10/3  16:04
 # --------------------------------------------------------------------------
 from __future__ import annotations
-
 from threading import Thread
 from flask import url_for, current_app
 from flask_mail import Message
-
-from extensions import mail
+from HealthMonitor.extensions import mail
 
 
 def _send_async_mail(app, message):

@@ -7,7 +7,7 @@
 # Date:2023/10/3  16:04
 # --------------------------------------------------------------------------
 from datetime import datetime
-from extensions import db
+from HealthMonitor.extensions import db
 
 
 # 定义数据模型
