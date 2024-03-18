@@ -6,6 +6,7 @@
 # Author:ChenQiancheng
 # Date:2023/10/3  16:04
 # --------------------------------------------------------------------------
+import time
 from datetime import datetime
 from HealthMonitor.extensions import db
 
@@ -13,11 +14,19 @@ from HealthMonitor.extensions import db
 # 定义数据模型
 class SensorData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    report_time = db.Column(db.DateTime)
     temperature = db.Column(db.Float)
     humidity = db.Column(db.Float)
+    blood_oxygen = db.Column(db.Float)
+    environment_temperature = db.Column(db.Float)
     heart_rate = db.Column(db.Integer)
-    create_time = db.Column(db.DateTime, default=datetime.utcnow)
-    update_time = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    address = db.Column(db.String(256))
+    topic = db.Column(db.String(256))
+    payload = db.Column(db.String(256))
+    create_time = db.Column(db.Integer, default=int(time.time()))
+    update_time = db.Column(db.Integer, default=int(time.time()), onupdate=int(time.time()))
 
     def __repr__(self):
         return f'<SensorData id={self.id} temperature={self.temperature} ' \

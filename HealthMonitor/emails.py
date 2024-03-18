@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-#
+# -*- coding: utf-8 -*-
 # --------------------------------------------------------------------------
 # ProjectName：bluelog
 # Name:emails.py
@@ -6,9 +6,10 @@
 # Author:ChenQiancheng
 # Date:2023/10/3  16:04
 # --------------------------------------------------------------------------
-from __future__ import annotations
+import random
+import string
 from threading import Thread
-from flask import url_for, current_app
+from flask import current_app
 from flask_mail import Message
 from HealthMonitor.extensions import mail
 
@@ -18,28 +19,39 @@ def _send_async_mail(app, message):
         mail.send(message)
 
 
-def send_mail(subject, to, html):
-    # 获取被代理的真实对象
+def send_mail(subject, to, body):
     app = current_app._get_current_object()
-    message = Message(subject, recipients=[to], html=html)
+    message = Message(subject, recipients=to, body=body)
     thr = Thread(target=_send_async_mail, args=[app, message])
     thr.start()
     return thr
 
 
-def send_new_comment_email(post):
-    post_url = url_for('blog.show_post', post_id=post.id, _external=True) + '#comments'
-    send_mail(subject='New comment', to=current_app.config['BLUELOG_EMAIL'],
-              html='<p>New comment in post <i>%s</i>, click the link below to check:</p>'
-                   '<p><a href="%s">%s</a></P>'
-                   '<p><small style="color: #868e96">Do not reply this email.</small></p>'
-                   % (post.title, post_url, post_url))
+# 老人主动点击按钮触发告警
+def send_manual_alert_email():
+    to = ['1025212193@qq.com', '986508902@qq.com', '404413567@qq.com']
+    send_mail(subject='Alert', to=to, body='Alert! An alert has been triggered by the elderly.')
 
 
-def send_new_reply_email(comment):
-    post_url = url_for('blog.show_post', post_id=comment.post_id, _external=True) + '#comments'
-    send_mail(subject='New reply', to=comment.email,
-              html='<p>New reply for the comment you left in post <i>%s</i>, click the link below to check: </p>'
-                   '<p><a href="%s">%s</a></p>'
-                   '<p><small style="color: #868e96">Do not reply this email.</small></p>'
-                   % (comment.post.title, post_url, post_url))
+# 老人主动点击按钮解除告警
+def send_manual_alert_clearance_email():
+    to = ['1025212193@qq.com', '986508902@qq.com', '404413567@qq.com']
+    send_mail(subject='Alert Clearance', to=to,
+              body='Alert cleared! The alerted condition has been resolved by the elderly.')
+
+
+def send_email_test():
+    recipients = ['986508902@qq.com', '404413567@qq.com']  # 多个收件人地址
+    source = string.digits * 4
+    captcha = random.sample(source, 4)
+    captcha = "".join(captcha)
+    message = Message(subject="知了传课注册验证码", recipients=recipients, body=f"告警了啊啊啊啊：{captcha}")
+    mail.send(message=message)
+    print("邮件已经发送")
+
+
+# 加速器和陀螺仪判断老人摔倒自动报警
+def send_automatic_monitoring_alert_email():
+    to = ['1025212193@qq.com', '986508902@qq.com', '404413567@qq.com']
+    send_mail(subject='Monitoring Alert', to=to,
+              body='Monitoring alert! Accelerometer and gyroscope have detected a fall by the elderly.')

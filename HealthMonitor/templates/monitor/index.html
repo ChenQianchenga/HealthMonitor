@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Ajax Example</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            padding: 10px;
+        }
+
+        td {
+            padding: 8px;
+        }
+
+        .data-label {
+            font-weight: bold;
+        }
+
+        .data-value {
+            color: blue;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            function getData() {
+                $.ajax({
+                    url: '/get_data',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (response) {
+                        console.log(response);  // 打印响应数据
+                        var temperature = response.temperature;
+                        var humidity = response.humidity;
+                        var heartRate = response.heart_rate;
+                        var report_time = response.report_time;
+
+                        $("#temperature").text(temperature + "°C");
+                        $("#humidity").text(humidity + "%");
+                        $("#heart-rate").text(heartRate + " bpm");
+                        $("#report_time").text(report_time);
+                    }
+                });
+            }
+
+            setInterval(getData, 1000);
+        });
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>温度检测系统</h1>
+    <table>
+        <tr>
+            <th class="data-label">数据类型</th>
+            <th class="data-value">当前值</th>
+        </tr>
+        <tr>
+            <td class="data-label">温度</td>
+            <td class="data-value" id="temperature">{{ first_data.temperature }}</td>
+        </tr>
+        <tr>
+            <td class="data-label">湿度</td>
+            <td class="data-value" id="humidity">{{ first_data.humidity }}</td>
+        </tr>
+        <tr>
+            <td class="data-label">心率</td>
+            <td class="data-value" id="heart-rate">{{ first_data.heart_rate }}</td>
+        </tr>
+        <tr>
+            <td class="data-label">数据采集时间</td>
+            <td class="data-value" id="report_time">{{ first_data.report_time }}</td>
+        </tr>
+    </table>
+</div>
+</body>
+</html>
