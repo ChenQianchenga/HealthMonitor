@@ -50,11 +50,21 @@
                     success: function (response) {
                         console.log(response);  // 打印响应数据
                         var temperature = response.temperature;
+                        var environment_temperature = response.environment_temperature;
+                        var blood_oxygen = response.blood_oxygen;
+                        var lon = response.lon;
+                        var lat = response.lat;
+                        var address = response.addr;
                         var humidity = response.humidity;
                         var heartRate = response.heart_rate;
                         var report_time = response.report_time;
 
                         $("#temperature").text(temperature + "°C");
+                        $("#environment_temperature").text(environment_temperature + "°C");
+                        $("#blood_oxygen").text(blood_oxygen + "spo2");
+                        $("#longitude").text(lon);
+                        $("#latitude").text(lat);
+                        $("#address").text(address);
                         $("#humidity").text(humidity + "%");
                         $("#heart-rate").text(heartRate + " bpm");
                         $("#report_time").text(report_time);
@@ -68,23 +78,39 @@
 </head>
 <body>
 <div class="container">
-    <h1>温度检测系统</h1>
+    <h1>老人监控监控系统</h1>
     <table>
         <tr>
-            <th class="data-label">数据类型</th>
-            <th class="data-value">当前值</th>
+            <th class="data-label">环境温度</th>
+            <th class="data-value" id="environment_temperature">{{ first_data.environment_temperature }}</th>
         </tr>
         <tr>
-            <td class="data-label">温度</td>
-            <td class="data-value" id="temperature">{{ first_data.temperature }}</td>
-        </tr>
-        <tr>
-            <td class="data-label">湿度</td>
+            <td class="data-label">环境湿度</td>
             <td class="data-value" id="humidity">{{ first_data.humidity }}</td>
         </tr>
         <tr>
-            <td class="data-label">心率</td>
-            <td class="data-value" id="heart-rate">{{ first_data.heart_rate }}</td>
+            <td class="data-label">人体温度</td>
+            <td class="data-value" id="temperature">{{ first_data.temperature }}</td>
+        </tr>
+        <tr>
+            <td class="data-label">人体心率</td>
+            <td class="data-value" id="heart_rate">{{ first_data.heart_rate }}</td>
+        </tr>
+        <tr>
+            <td class="data-label">人体血氧</td>
+            <td class="data-value" id="blood_oxygen">{{ first_data.blood_oxygen }}</td>
+        </tr>
+        <tr>
+            <td class="data-label">经度</td>
+            <td class="data-value" id="longitude">{{ first_data.longitude }}</td>
+        </tr>
+        <tr>
+            <td class="data-label">维度</td>
+            <td class="data-value" id="latitude">{{ first_data.latitude }}</td>
+        </tr>
+          <tr>
+            <td class="data-label">所在位置</td>
+            <td class="data-value" id="address">{{ first_data.address }}</td>
         </tr>
         <tr>
             <td class="data-label">数据采集时间</td>

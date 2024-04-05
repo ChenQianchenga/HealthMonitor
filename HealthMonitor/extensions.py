@@ -17,7 +17,6 @@ from flask_moment import Moment
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 
-
 db = SQLAlchemy()
 moment = Moment()
 mqtt_client = Mqtt()
@@ -25,4 +24,3 @@ mqtt_client = Mqtt()
 mail = Mail()
 login_manager = LoginManager()
 csrf = CSRFProtect()
-

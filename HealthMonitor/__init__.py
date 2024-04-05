@@ -9,7 +9,7 @@
 import json
 import os
 from datetime import datetime
-
+from urllib import parse
 import requests
 from flask_cors import CORS
 import click
@@ -21,11 +21,35 @@ from HealthMonitor.models import SensorData
 from HealthMonitor.settings import config
 from HealthMonitor.emails import send_manual_alert_email, send_manual_alert_clearance_email, send_email_test
 from HealthMonitor.emails import send_automatic_monitoring_alert_email
+from loguru import logger
 
 # 百度地图逆地理编码API参数
-BAIDU_API_URL = 'http://api.map.baidu.com/reverse_geocoding/v3/'
-BAIDU_API_KEY = 'lHGem8BSeNkr84OOOaGDB0vdiHHpqGi8'
+BAIDU_API_URL = 'https://api.map.baidu.com/reverse_geocoding/v3/'
+BAIDU_API_KEY = 'aujGhARF3F8jw5c4p7nViTcC7voXmwd3'
 COORD_TYPE = 'wgs84ll'  # 使用WGS84坐标系，可根据实际情况修改
+
+
+# 通过地址获取经纬度信息
+def get_coordinates(address):
+    # 对地址进行URL编码
+    encoded_address = parse.quote(address)
+
+    # 构建请求URL
+    url = f'https://api.map.baidu.com/geocoding/v3/?address={encoded_address}&output=json&ak={BAIDU_API_KEY}'
+
+    # 发送请求并获取响应
+    response = requests.get(url)
+    data = response.json()
+    logger.info(f"地址详细信息：{data}")
+
+    # 解析响应数据
+    if data['status'] == 0:
+        location = data['result']['location']
+        latitude = location['lat']
+        longitude = location['lng']
+        return latitude, longitude
+    else:
+        return None
 
 
 # 获取位置信息
@@ -35,19 +59,20 @@ def get_location_info(latitude, longitude):
     print(url)
     response = requests.get(url)
     print("折柳", response.text)
-    # data = response.json()
-    # if data['status'] == 0:
-    #     result = data['result']
-    #     print(result)
-    #     formatted_address = result['formatted_address']
-    #     print('Formatted Address:', formatted_address)
-    #     # 还可以获取其他详细信息，例如省份、城市、区县等
-    #     # province = result['addressComponent']['province']
-    #     # city = result['addressComponent']['city']
-    #     # district = result['addressComponent']['district']
-    #     # ...
-    # else:
-    #     print('Failed to get location info')
+
+
+# 预处理数据
+def preprocess_data(raw_data):
+    expected_keys = ['humidity', 'report_time', 'temperature', 'gx', 'gy', 'gz', 'X', 'Y', 'Z', 'temp', 'bmp', 'spo2']
+    processed_data = {}
+
+    for key in expected_keys:
+        if key in raw_data:
+            processed_data[key] = raw_data[key]
+        else:
+            processed_data[key] = None  # 或者设定其他默认值，如0、NaN等
+
+    return processed_data
 
 
 def gyro_is_fallen(gyro_data, threshold=45):
@@ -116,8 +141,10 @@ def create_app(config_name=None):
         # 判断是告警发生还是解除
         if payload_dict['action']:
             # 告警发生
+            logger.info(f"手动触发告警发生：{payload_dict}")
             send_manual_alert_email()
         else:
+            logger.info(f"手动触发告警解除：{payload_dict}")
             send_manual_alert_clearance_email()
 
     topic_handlers[MANUAL_ALARM_MQTT_TOPIC] = handle_manual_alert
@@ -130,36 +157,44 @@ def create_app(config_name=None):
 
     # 默认操作函数，处理数据上报topic
     def handle_default(payload_dict, topic, payload):
-        time_str = payload_dict['report_time']
+        # 在这里解析mqtt上报过来的数据
+        logger.info(f"esp32上报数据：{payload_dict}")
+        # 数据预处理
+        new_payload_dict = preprocess_data(payload_dict)
+        logger.info(f"esp32上报数据预处理后：{new_payload_dict}")
+
+        time_str = new_payload_dict['report_time']
 
         # 将时间字符串转换为 datetime 对象
         report_time = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
 
         # 创建一个 SensorData 对象并设置 report_time 字段
         # 创建 SensorData 对象并保存到数据库
-        if gyro_is_fallen(payload_dict) and accel_is_fallen(payload_dict):
-            print("老人跌倒告警")
-            # send_automatic_monitoring_alert_email()
-        # 获取位置信息
-        # latitude_data = payload_dict['latitude']
-        # longitude_data = payload_dict['longitude']
-        # 转换经纬度
-
-        # 打印转换结果
-        # print('Converted Latitude:', converted_lat)
-        # print('Converted Longitude:', converted_lon)
-        # get_location_info(latitude=converted_lat, longitude=converted_lon)
-        # latitude=latitude_data, longitude=longitude_data,
+        # 如果传感器没有上报陀螺仪和加速度的数据就不用判断了
+        if new_payload_dict.get('gx') is not None and new_payload_dict.get('X') is not None:
+            if gyro_is_fallen(new_payload_dict) and accel_is_fallen(new_payload_dict):
+                print("老人跌倒告警")
+                # send_automatic_monitoring_alert_email()
+        address = '北京市昌平区龙德广场'
+        lat, lng = get_coordinates(address)
+        print(lat, lng)
         data = SensorData(report_time=report_time,
-                          environment_temperature=payload_dict['environment_temperature'],
-                          humidity=payload_dict['humidity'], topic=topic, payload=payload)
+                          latitude=lat,
+                          longitude=lng,
+                          address=address,
+                          temperature=new_payload_dict['temperature'],
+                          environment_temperature=new_payload_dict['temp'],
+                          blood_oxygen=new_payload_dict['spo2'],
+                          heart_rate=new_payload_dict['bmp'],
+                          humidity=new_payload_dict['humidity'], topic=topic, payload=payload)
         db.session.add(data)
         db.session.commit()
+        logger.info(f"数据保存成功")
 
     @mqtt_client.on_connect()
     def handle_connect(client, userdata, flags, rc):
         if rc == 0:
-            print('连接mqtt服务器成功')
+            logger.info('连接mqtt服务器成功')
             mqtt_client.subscribe(TOPIC)  # 订阅上报数据主题
             mqtt_client.subscribe(MANUAL_ALARM_MQTT_TOPIC)  # 订阅手动告警
             mqtt_client.subscribe(AUTOMATIC_ALARM_MQTT_TOPIC)  # 订阅自动告警
@@ -177,9 +212,11 @@ def create_app(config_name=None):
             # 检查是否存在与当前topic关联的操作函数
             if topic in topic_handlers:
                 # 调用与当前topic关联的操作函数，并传递payload_dict作为参数
+                logger.info(f"这个topic有操作函数{topic}")
                 topic_handlers[topic](payload_dict)
             else:
                 # 如果没有与当前topic关联的操作函数，则使用默认操作函数处理数据
+                logger.info(f"这个topic没有操作函数{topic}")
                 handle_default(payload_dict, topic, payload)
 
     return app

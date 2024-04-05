@@ -29,7 +29,12 @@ def get_data():
     # 在实际应用中，这里可以查询数据库或者进行其他操作来获取数据
     first_data = SensorData.query.order_by(SensorData.report_time.desc()).first()
     data_dict = {
+        "environment_temperature": first_data.environment_temperature,
         "temperature": first_data.temperature,
+        "blood_oxygen": first_data.blood_oxygen,
+        "lat": first_data.latitude,
+        "lon": first_data.longitude,
+        "addr": first_data.address,
         "humidity": first_data.humidity,
         "heart_rate": first_data.heart_rate,
         "report_time": first_data.report_time,
@@ -42,7 +47,8 @@ def get_data():
 # 应用的路由和视图函数
 @monitor_bp.route('/publish')
 def publish():
-    data = {"humidity": 48, "report_time": "2024-03-01 16:49:28", "temperature": 23}
+    data = {"humidity": 48, "report_time": "2024-03-01 16:49:28", "temperature": 23, "gx": 1, "gy": 1, "gz": 1, "X": 1,
+            "Y": 1, "Z": 1, "temp": 2, "bmp": 1, "spo2": 1}
     payload = json.dumps(data)
     mqtt_client.publish(topic='esp32/report/data', payload=payload)
     return "Message published"
