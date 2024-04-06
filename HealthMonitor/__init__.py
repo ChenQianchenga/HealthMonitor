@@ -104,7 +104,7 @@ def accel_is_fallen(accel_data, threshold=2.0):
         return False
 
 
-address = '北京市昌平区龙德广场'
+address = '河南省安阳市文峰区弦歌大道436号'
 
 
 def create_app(config_name=None):
