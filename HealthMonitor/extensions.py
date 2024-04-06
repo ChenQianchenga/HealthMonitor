@@ -19,7 +19,7 @@ from flask_wtf.csrf import CSRFProtect
 
 db = SQLAlchemy()
 moment = Moment()
-mqtt_client = Mqtt()
+mqtt_client = Mqtt(mqtt_logging=True)
 # ckeditor = CKEditor()
 mail = Mail()
 login_manager = LoginManager()

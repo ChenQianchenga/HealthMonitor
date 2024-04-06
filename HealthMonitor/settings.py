@@ -52,13 +52,14 @@ class BaseConfig(object):
     BLUELOG_ALLOWED_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 
     # mqtt配置
-    MQTT_BROKER_URL = 'broker.emqx.io'
-    # MQTT_BROKER_URL = '192.168.31.14'
+    # MQTT_BROKER_URL = 'broker.emqx.io'
+    MQTT_BROKER_URL = '192.168.1.25'
     MQTT_BROKER_PORT = 1883
     MQTT_USERNAME = ''
     MQTT_PASSWORD = ''
     MQTT_KEEPALIVE = 5
     MQTT_TLS_ENABLED = False
+    MQTT_CLIENT_ID = "esp32"
 
 
 class DevelopmentConfig(BaseConfig):
