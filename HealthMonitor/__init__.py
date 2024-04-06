@@ -104,6 +104,9 @@ def accel_is_fallen(accel_data, threshold=2.0):
         return False
 
 
+address = '北京市昌平区龙德广场'
+
+
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.getenv('FLASK_CONFIG', 'development')
@@ -138,14 +141,17 @@ def create_app(config_name=None):
     # 注册手动触发告警和解除告警操作函数
     # 我在这里： {'action': False, 'alert_time': '2024-03-03 22:45:38'}
     def handle_manual_alert(payload_dict):
+        # 这个地方去查一下数据库
+        first_data = SensorData.query.order_by(SensorData.report_time.desc()).first()
+        logger.info(f"当前主动发生告警，数据库最新一条数据：{first_data}")
         # 判断是告警发生还是解除
         if payload_dict['action']:
             # 告警发生
             logger.info(f"手动触发告警发生：{payload_dict}")
-            send_manual_alert_email()
+            send_manual_alert_email(position=address)
         else:
             logger.info(f"手动触发告警解除：{payload_dict}")
-            send_manual_alert_clearance_email()
+            send_manual_alert_clearance_email(position=address)
 
     topic_handlers[MANUAL_ALARM_MQTT_TOPIC] = handle_manual_alert
 
@@ -174,8 +180,8 @@ def create_app(config_name=None):
         if new_payload_dict.get('gx') is not None and new_payload_dict.get('X') is not None:
             if gyro_is_fallen(new_payload_dict) and accel_is_fallen(new_payload_dict):
                 print("老人跌倒告警")
-                # send_automatic_monitoring_alert_email()
-        address = '北京市昌平区龙德广场'
+                send_automatic_monitoring_alert_email(position=address, **new_payload_dict)
+
         lat, lng = get_coordinates(address)
         print(lat, lng)
         data = SensorData(report_time=report_time,

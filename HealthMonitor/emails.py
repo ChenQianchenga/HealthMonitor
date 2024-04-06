@@ -28,16 +28,47 @@ def send_mail(subject, to, body):
 
 
 # 老人主动点击按钮触发告警
-def send_manual_alert_email():
+def send_manual_alert_email(position):
     to = ['1025212193@qq.com', '986508902@qq.com', '404413567@qq.com']
-    send_mail(subject='Alert', to=to, body='Alert! An alert has been triggered by the elderly.')
+    body = f"""
+                Monitoring Alert!
+
+                An elderly individual has experienced a fall, as detected by the accelerometer and gyroscope.
+
+                **Location:** {position}
+
+                **Environmental Conditions:**
+                - Temperature: {temperature}°C
+
+                **Vital Signs:**
+                - Blood Oxygen Saturation: {blood_oxygen}% 
+                - Heart Rate: {heart_rate} bpm
+
+                Immediate attention is required. Please respond promptly.
+                """
+    send_mail(subject='Alert', to=to, body=body)
 
 
 # 老人主动点击按钮解除告警
-def send_manual_alert_clearance_email():
+def send_manual_alert_clearance_email(position):
     to = ['1025212193@qq.com', '986508902@qq.com', '404413567@qq.com']
-    send_mail(subject='Alert Clearance', to=to,
-              body='Alert cleared! The alerted condition has been resolved by the elderly.')
+    body = f"""
+                Monitoring Alert!
+
+                An elderly individual has experienced a fall, as detected by the accelerometer and gyroscope.
+
+                **Location:** {position}
+
+                **Environmental Conditions:**
+                - Temperature: {temperature}°C
+
+                **Vital Signs:**
+                - Blood Oxygen Saturation: {blood_oxygen}% 
+                - Heart Rate: {heart_rate} bpm
+
+                Immediate attention is required. Please respond promptly.
+                """
+    send_mail(subject='Alert Clearance', to=to, body=body)
 
 
 def send_email_test():
@@ -51,7 +82,24 @@ def send_email_test():
 
 
 # 加速器和陀螺仪判断老人摔倒自动报警
-def send_automatic_monitoring_alert_email():
+def send_automatic_monitoring_alert_email(position, **kwargs):
     to = ['1025212193@qq.com', '986508902@qq.com', '404413567@qq.com']
-    send_mail(subject='Monitoring Alert', to=to,
-              body='Monitoring alert! Accelerometer and gyroscope have detected a fall by the elderly.')
+
+    body = f"""
+            Monitoring Alert!
+    
+            An elderly individual has experienced a fall, as detected by the accelerometer and gyroscope.
+    
+            **Location:** {position}
+    
+            **Environmental Conditions:**
+            - Temperature: {kwargs['temperature']}°C
+    
+            **Vital Signs:**
+            - Blood Oxygen Saturation: {kwargs['blood_oxygen']}% 
+            - Heart Rate: {kwargs['heart_rate']} bpm
+    
+            Immediate attention is required. Please respond promptly.
+            """
+
+    send_mail(subject='Monitoring Alert', to=to, body=body)
