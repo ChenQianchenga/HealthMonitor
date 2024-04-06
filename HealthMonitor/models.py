@@ -25,6 +25,9 @@ class SensorData(db.Model):
     address = db.Column(db.String(256))
     topic = db.Column(db.String(256))
     payload = db.Column(db.String(256))
+    acceleration_x = db.Column(db.Float)
+    acceleration_y = db.Column(db.Float)
+    acceleration_z = db.Column(db.Float)
     create_time = db.Column(db.Integer, default=int(time.time()))
     update_time = db.Column(db.Integer, default=int(time.time()), onupdate=int(time.time()))
 

@@ -10,6 +10,8 @@ import json
 import os
 from datetime import datetime
 from urllib import parse
+
+import numpy as np
 import requests
 from flask_cors import CORS
 import click
@@ -19,7 +21,7 @@ from HealthMonitor.blueprints.monitor import monitor_bp
 from HealthMonitor.extensions import db, mail, moment, mqtt_client
 from HealthMonitor.models import SensorData
 from HealthMonitor.settings import config
-from HealthMonitor.emails import send_manual_alert_email, send_manual_alert_clearance_email, send_email_test
+from HealthMonitor.emails import send_manual_alert_email, send_manual_alert_clearance_email
 from HealthMonitor.emails import send_automatic_monitoring_alert_email
 from loguru import logger
 
@@ -63,7 +65,8 @@ def get_location_info(latitude, longitude):
 
 # 预处理数据
 def preprocess_data(raw_data):
-    expected_keys = ['humidity', 'report_time', 'temperature', 'gx', 'gy', 'gz', 'X', 'Y', 'Z', 'temp', 'bmp', 'spo2']
+    expected_keys = ['humidity', 'report_time', 'environment_temperature', 'gx', 'gy', 'gz', 'X', 'Y', 'Z',
+                     'temp', 'bmp', 'sop2']
     processed_data = {}
 
     for key in expected_keys:
@@ -75,30 +78,41 @@ def preprocess_data(raw_data):
     return processed_data
 
 
+# 陀螺仪判断是否跌倒，阈值threshold
 def gyro_is_fallen(gyro_data, threshold=45):
     angleX = gyro_data['gx']
     angleY = gyro_data['gy']
     angleZ = gyro_data['gz']
-    print(abs(angleX))
-    print(abs(angleY))
+    logger.debug(f"angleX绝对值为：{abs(angleX)}")
+    logger.debug(f"angleY绝对值为：{abs(angleY)}")
     if abs(angleX) > threshold or abs(angleY) > threshold:
         return True
     else:
         return False
 
 
-def accel_is_fallen(accel_data, threshold=2.0):
+# 加速度判断是否跌倒，阈值threshold
+
+def accel_is_fallen(accel_data, threshold=200):
+    try:
+        first_data = SensorData.query.order_by(SensorData.report_time.desc()).first()
+        old_x = first_data.acceleration_x
+        old_y = first_data.acceleration_y
+        old_z = first_data.acceleration_z
+    except Exception as e:
+        logger.error(e)
+        return False
     acceleration = accel_data
     x = acceleration["X"]
     y = acceleration["Y"]
     z = acceleration["Z"]
 
-    # 计算合成加速度
-    acceleration_magnitude = (x ** 2 + y ** 2 + z ** 2) ** 0.5
-
-    # 判断是否满足跌倒条件
-    print(acceleration_magnitude)
-    if acceleration_magnitude > threshold:
+    delta_x = abs(x - old_x)
+    delta_y = abs(y - old_y)
+    delta_z = abs(z - old_z)
+    logger.debug(f"delta_x:{delta_x},delta_y:{delta_y},delta_z:{delta_z}")
+    if delta_x > threshold or delta_y > threshold or delta_z > threshold:
+        logger.error("加速度判断跌倒")
         return True
     else:
         return False
@@ -142,16 +156,20 @@ def create_app(config_name=None):
     # 我在这里： {'action': False, 'alert_time': '2024-03-03 22:45:38'}
     def handle_manual_alert(payload_dict):
         # 这个地方去查一下数据库
-        first_data = SensorData.query.order_by(SensorData.report_time.desc()).first()
+        try:
+            first_data = SensorData.query.order_by(SensorData.report_time.desc()).first()
+            print(first_data)
+        except AttributeError:
+            return False
         logger.info(f"当前主动发生告警，数据库最新一条数据：{first_data}")
         # 判断是告警发生还是解除
         if payload_dict['action']:
             # 告警发生
             logger.info(f"手动触发告警发生：{payload_dict}")
-            send_manual_alert_email(position=address)
+            send_manual_alert_email(position=address, first_data=first_data)
         else:
             logger.info(f"手动触发告警解除：{payload_dict}")
-            send_manual_alert_clearance_email(position=address)
+            send_manual_alert_clearance_email(position=address, first_data=first_data)
 
     topic_handlers[MANUAL_ALARM_MQTT_TOPIC] = handle_manual_alert
 
@@ -178,8 +196,8 @@ def create_app(config_name=None):
         # 创建 SensorData 对象并保存到数据库
         # 如果传感器没有上报陀螺仪和加速度的数据就不用判断了
         if new_payload_dict.get('gx') is not None and new_payload_dict.get('X') is not None:
-            if gyro_is_fallen(new_payload_dict) and accel_is_fallen(new_payload_dict):
-                print("老人跌倒告警")
+            if gyro_is_fallen(new_payload_dict) & accel_is_fallen(new_payload_dict):
+                logger.error("通过计算加速度和陀螺仪判断跌倒，发送告警邮件")
                 send_automatic_monitoring_alert_email(position=address, **new_payload_dict)
 
         lat, lng = get_coordinates(address)
@@ -188,11 +206,15 @@ def create_app(config_name=None):
                           latitude=lat,
                           longitude=lng,
                           address=address,
-                          temperature=new_payload_dict['temperature'],
-                          environment_temperature=new_payload_dict['temp'],
-                          blood_oxygen=new_payload_dict['spo2'],
+                          temperature=new_payload_dict['temp'],
+                          environment_temperature=new_payload_dict['environment_temperature'],
+                          blood_oxygen=new_payload_dict['sop2'],
                           heart_rate=new_payload_dict['bmp'],
-                          humidity=new_payload_dict['humidity'], topic=topic, payload=payload)
+                          humidity=new_payload_dict['humidity'],
+                          acceleration_x=new_payload_dict['X'],
+                          acceleration_y=new_payload_dict['Y'],
+                          acceleration_z=new_payload_dict['Z'],
+                          topic=topic, payload=payload)
         db.session.add(data)
         db.session.commit()
         logger.info(f"数据保存成功")
