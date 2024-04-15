@@ -8,7 +8,7 @@
 # --------------------------------------------------------------------------
 # from flask_bootstrap import Bootstrap4
 import datetime
-
+import redis
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 from flask_mqtt import Mqtt
@@ -17,6 +17,7 @@ from flask_moment import Moment
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 
+redis_client = redis.Redis(host='127.0.0.1', port=6379, db=0)
 db = SQLAlchemy()
 moment = Moment()
 mqtt_client = Mqtt(mqtt_logging=True)

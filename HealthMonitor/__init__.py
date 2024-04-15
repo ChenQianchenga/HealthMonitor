@@ -10,15 +10,13 @@ import json
 import os
 from datetime import datetime
 from urllib import parse
-
-import numpy as np
 import requests
 from flask_cors import CORS
 import click
 from flask import Flask, current_app
 from HealthMonitor.blueprints import monitor
 from HealthMonitor.blueprints.monitor import monitor_bp
-from HealthMonitor.extensions import db, mail, moment, mqtt_client
+from HealthMonitor.extensions import db, mail, moment, mqtt_client, redis_client
 from HealthMonitor.models import SensorData
 from HealthMonitor.settings import config
 from HealthMonitor.emails import send_manual_alert_email, send_manual_alert_clearance_email
@@ -202,8 +200,14 @@ def create_app(config_name=None):
         # 如果传感器没有上报陀螺仪和加速度的数据就不用判断了
         if new_payload_dict.get('gx') is not None and new_payload_dict.get('X') is not None:
             if gyro_is_fallen(new_payload_dict) & accel_is_fallen(new_payload_dict):
-                logger.error("通过计算加速度和陀螺仪判断跌倒，发送告警邮件")
-                send_automatic_monitoring_alert_email(position=address, **new_payload_dict)
+                # 判断send_email的redis键是否存在，如果存在就不发邮件了，1min过期时间，限制邮件发送频率
+                if redis_client.exists("send_email"):
+                    logger.success("一分钟频率限制，不发送邮件")
+                else:
+                    logger.error("通过计算加速度和陀螺仪判断跌倒，发送告警邮件")
+                    send_automatic_monitoring_alert_email(position=address, **new_payload_dict)
+                    # 设置一个redis键，1min过期时间，限制邮件发送频率
+                    redis_client.setex('send_email', 60, 'true')
 
         lat, lng = get_coordinates(address)
         print(lat, lng)
