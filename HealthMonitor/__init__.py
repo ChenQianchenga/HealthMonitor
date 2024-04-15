@@ -96,9 +96,14 @@ def gyro_is_fallen(gyro_data, threshold=45):
 def accel_is_fallen(accel_data, threshold=200):
     try:
         first_data = SensorData.query.order_by(SensorData.report_time.desc()).first()
-        old_x = first_data.acceleration_x
-        old_y = first_data.acceleration_y
-        old_z = first_data.acceleration_z
+        if first_data.acceleration_x is None:
+            logger.error("上次加速度为空无法计算")
+            return False
+        else:
+            old_x = first_data.acceleration_x
+            old_y = first_data.acceleration_y
+            old_z = first_data.acceleration_z
+
     except Exception as e:
         logger.error(e)
         return False
@@ -165,10 +170,10 @@ def create_app(config_name=None):
         # 判断是告警发生还是解除
         if payload_dict['action']:
             # 告警发生
-            logger.info(f"手动触发告警发生：{payload_dict}")
+            logger.success(f"手动触发告警发生：{payload_dict}")
             send_manual_alert_email(position=address, first_data=first_data)
         else:
-            logger.info(f"手动触发告警解除：{payload_dict}")
+            logger.success(f"手动触发告警解除：{payload_dict}")
             send_manual_alert_clearance_email(position=address, first_data=first_data)
 
     topic_handlers[MANUAL_ALARM_MQTT_TOPIC] = handle_manual_alert
