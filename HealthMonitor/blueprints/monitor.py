@@ -8,7 +8,7 @@
 # --------------------------------------------------------------------------
 import json
 import random
-from HealthMonitor.extensions import mqtt_client
+from HealthMonitor.extensions import mqtt_client, redis_client
 from flask import Blueprint, render_template, jsonify
 
 from HealthMonitor.models import SensorData
@@ -52,3 +52,11 @@ def publish():
     payload = json.dumps(data)
     mqtt_client.publish(topic='esp32/report/data', payload=payload)
     return "Message published"
+
+
+@monitor_bp.route('/redis')
+def redis():
+    redis_client.setex('send_email', 60, 'true')
+    print(redis_client.exists('send_email'))
+    print(type(redis_client.get('send_email')))
+    return "redis ok"

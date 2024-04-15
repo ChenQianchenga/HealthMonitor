@@ -10,15 +10,13 @@ import json
 import os
 from datetime import datetime
 from urllib import parse
-
-import numpy as np
 import requests
 from flask_cors import CORS
 import click
 from flask import Flask, current_app
 from HealthMonitor.blueprints import monitor
 from HealthMonitor.blueprints.monitor import monitor_bp
-from HealthMonitor.extensions import db, mail, moment, mqtt_client
+from HealthMonitor.extensions import db, mail, moment, mqtt_client, redis_client
 from HealthMonitor.models import SensorData
 from HealthMonitor.settings import config
 from HealthMonitor.emails import send_manual_alert_email, send_manual_alert_clearance_email
@@ -96,9 +94,14 @@ def gyro_is_fallen(gyro_data, threshold=45):
 def accel_is_fallen(accel_data, threshold=200):
     try:
         first_data = SensorData.query.order_by(SensorData.report_time.desc()).first()
-        old_x = first_data.acceleration_x
-        old_y = first_data.acceleration_y
-        old_z = first_data.acceleration_z
+        if first_data.acceleration_x is None:
+            logger.error("上次加速度为空无法计算")
+            return False
+        else:
+            old_x = first_data.acceleration_x
+            old_y = first_data.acceleration_y
+            old_z = first_data.acceleration_z
+
     except Exception as e:
         logger.error(e)
         return False
@@ -165,10 +168,10 @@ def create_app(config_name=None):
         # 判断是告警发生还是解除
         if payload_dict['action']:
             # 告警发生
-            logger.info(f"手动触发告警发生：{payload_dict}")
+            logger.success(f"手动触发告警发生：{payload_dict}")
             send_manual_alert_email(position=address, first_data=first_data)
         else:
-            logger.info(f"手动触发告警解除：{payload_dict}")
+            logger.success(f"手动触发告警解除：{payload_dict}")
             send_manual_alert_clearance_email(position=address, first_data=first_data)
 
     topic_handlers[MANUAL_ALARM_MQTT_TOPIC] = handle_manual_alert
@@ -197,8 +200,14 @@ def create_app(config_name=None):
         # 如果传感器没有上报陀螺仪和加速度的数据就不用判断了
         if new_payload_dict.get('gx') is not None and new_payload_dict.get('X') is not None:
             if gyro_is_fallen(new_payload_dict) & accel_is_fallen(new_payload_dict):
-                logger.error("通过计算加速度和陀螺仪判断跌倒，发送告警邮件")
-                send_automatic_monitoring_alert_email(position=address, **new_payload_dict)
+                # 判断send_email的redis键是否存在，如果存在就不发邮件了，1min过期时间，限制邮件发送频率
+                if redis_client.exists("send_email"):
+                    logger.success("一分钟频率限制，不发送邮件")
+                else:
+                    logger.error("通过计算加速度和陀螺仪判断跌倒，发送告警邮件")
+                    send_automatic_monitoring_alert_email(position=address, **new_payload_dict)
+                    # 设置一个redis键，1min过期时间，限制邮件发送频率
+                    redis_client.setex('send_email', 60, 'true')
 
         lat, lng = get_coordinates(address)
         print(lat, lng)
