@@ -54,6 +54,12 @@ def publish():
     return "Message published"
 
 
+@monitor_bp.route('/esp32')
+def send_to_esp32():
+    mqtt_client.publish('esp32/command', 'fall')
+    return "Message published"
+
+
 @monitor_bp.route('/redis')
 def redis():
     redis_client.setex('send_email', 60, 'true')
