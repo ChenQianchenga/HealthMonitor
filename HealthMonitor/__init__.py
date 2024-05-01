@@ -29,6 +29,12 @@ BAIDU_API_KEY = 'aujGhARF3F8jw5c4p7nViTcC7voXmwd3'
 COORD_TYPE = 'wgs84ll'  # 使用WGS84坐标系，可根据实际情况修改
 
 
+# 老人主动跌倒后，发送消息给ESP32,蜂鸣器发声
+def send_to_esp32():
+    logger.info("发送消息给ESP32")
+    mqtt_client.publish('esp32-command', 'fall')
+
+
 # 通过地址获取经纬度信息
 def get_coordinates(address):
     # 对地址进行URL编码
@@ -206,6 +212,8 @@ def create_app(config_name=None):
                 else:
                     logger.error("通过计算加速度和陀螺仪判断跌倒，发送告警邮件")
                     send_automatic_monitoring_alert_email(position=address, **new_payload_dict)
+                    # 让蜂鸣器发声
+                    send_to_esp32()
                     # 设置一个redis键，1min过期时间，限制邮件发送频率
                     redis_client.setex('send_email', 60, 'true')
 

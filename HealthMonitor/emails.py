@@ -61,6 +61,10 @@ def send_manual_alert_email(position, first_data):
                 </ul>
 
                 <p>Immediate attention is required. Please respond promptly.</p>
+                <h2>Further Details:</h2>
+                <p>For more information and real-time updates, please visit:
+                   <a href="http://39.101.74.115:5000/">Alert Details Page</a>.
+                </p>
             </body>
         </html>
         """
@@ -100,6 +104,10 @@ def send_manual_alert_clearance_email(position, first_data):
                 </ul>
 
                 <p><strong>Immediate attention is required. Please respond promptly.</strong></p>
+                <h2>Further Details:</h2>
+                <p>For more information and real-time updates, please visit:
+                   <a href="http://39.101.74.115:5000/">Alert Details Page</a>.
+                </p>
             </body>
             </html>
         """
@@ -149,6 +157,10 @@ def send_automatic_monitoring_alert_email(position, **kwargs):
                     </ul>
 
                     <p><strong>Immediate attention is required. Please respond promptly.</strong></p>
+                    <h2>Further Details:</h2>
+                    <p>For more information and real-time updates, please visit:
+                        <a href="http://39.101.74.115:5000/">Alert Details Page</a>.
+                    </p>
                 </body>
             </html>
         """

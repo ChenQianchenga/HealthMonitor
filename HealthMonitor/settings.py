@@ -38,6 +38,7 @@ class BaseConfig(object):
     # MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     # MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = '980938541@qq.com'
+    # 发邮件超时时间
     MAIL_TIMEOUT = 30
 
     BLUELOG_EMAIL = os.getenv('BLUELOG_EMAIL')
@@ -53,7 +54,7 @@ class BaseConfig(object):
 
     # mqtt配置
     # MQTT_BROKER_URL = 'broker.emqx.io'
-    MQTT_BROKER_URL = '192.168.1.25'
+    MQTT_BROKER_URL = '39.101.74.115'
     MQTT_BROKER_PORT = 1883
     MQTT_USERNAME = ''
     MQTT_PASSWORD = ''
